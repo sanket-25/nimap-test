@@ -1,0 +1,34 @@
+<section>
+  <h2>{{ productId ? 'Update Product' : 'Create Product' }}</h2>
+
+  <p *ngIf="isLoading">Loading...</p>
+
+  <form [formGroup]="productForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+    <div class="form-field">
+      <label for="productName">Product Name</label>
+      <input id="productName" formControlName="productName" type="text" />
+      <small *ngIf="productForm.controls.productName.touched && productForm.controls.productName.invalid">
+        Product name is required.
+      </small>
+    </div>
+
+    <div class="form-field">
+      <label for="categoryId">Category</label>
+      <select id="categoryId" formControlName="categoryId">
+        <option value="">Select Category</option>
+        <option *ngFor="let category of categories" [value]="category.category_id">
+          {{ category.category_name }}
+        </option>
+      </select>
+      <small *ngIf="productForm.controls.categoryId.touched && productForm.controls.categoryId.invalid">
+        Category is required.
+      </small>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="productForm.invalid || isSubmitting">Save</button>
+    </div>
+
+    <p *ngIf="errorMessage">{{ errorMessage }}</p>
+  </form>
+</section>

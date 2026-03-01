@@ -1,0 +1,20 @@
+<section>
+  <h2>{{ categoryId ? 'Update Category' : 'Create Category' }}</h2>
+
+  <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()">
+    <div class="form-field">
+      <label for="categoryName">Category Name</label>
+      <input id="categoryName" formControlName="categoryName" type="text" />
+      <small *ngIf="categoryForm.controls.categoryName.touched && categoryForm.controls.categoryName.invalid">
+        Category name is required.
+      </small>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="categoryForm.invalid || isSubmitting">Submit</button>
+      <button type="button" (click)="onReset()">Reset</button>
+    </div>
+
+    <p *ngIf="errorMessage">{{ errorMessage }}</p>
+  </form>
+</section>

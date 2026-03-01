@@ -1,0 +1,22 @@
+.container {
+  margin: 24px auto;
+  max-width: 980px;
+  padding: 0 16px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.nav-links a {
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.nav-links a.active {
+  font-weight: 600;
+}

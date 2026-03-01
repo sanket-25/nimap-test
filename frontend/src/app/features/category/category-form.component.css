@@ -1,0 +1,16 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  max-width: 360px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+small {
+  color: #c0392b;
+}

@@ -1,0 +1,30 @@
+.section-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pagination-toolbar,
+.pagination-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #dddddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+}
