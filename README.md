@@ -182,3 +182,7 @@ Sample list response:
 - Product list supports page-size options: 5, 10, 20.
 - UI includes delete confirmation.
 - Product page shows total records and empty states.
+
+
+<img width="1607" height="807" alt="supabase-schema-fffwnpqojogpbncpnoig" src="https://github.com/user-attachments/assets/b796710a-53df-4afc-8ff2-e3d4fb3b1b15" />
+
