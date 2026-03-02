@@ -1,4 +1,5 @@
-const pool = require('../config/db');
+// using supabase-js client instead of raw pool
+const supabase = require('../config/db');
 
 const validateProductPayload = async (productName, categoryId) => {
   if (!productName || !productName.trim()) {
@@ -10,14 +11,18 @@ const validateProductPayload = async (productName, categoryId) => {
     return 'categoryId must be a positive integer';
   }
 
-  const categoryCheckQuery = `
-    SELECT category_id
-    FROM categories
-    WHERE category_id = $1
-  `;
-  const categoryCheckResult = await pool.query(categoryCheckQuery, [parsedCategoryId]);
+  const { data: categoryCheck, error: categoryError } = await supabase
+    .from('categories')
+    .select('category_id')
+    .eq('category_id', parsedCategoryId)
+    .single();
 
-  if (!categoryCheckResult.rows.length) {
+  if (categoryError) {
+    console.error('validateProductPayload category fetch error', categoryError.message);
+    throw categoryError;
+  }
+
+  if (!categoryCheck) {
     return 'Invalid categoryId: category does not exist';
   }
 
@@ -33,14 +38,18 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ message: validationError });
     }
 
-    const query = `
-      INSERT INTO products (product_name, category_id)
-      VALUES ($1, $2)
-      RETURNING product_id, product_name, category_id, created_at
-    `;
+    const { data, error } = await supabase
+      .from('products')
+      .insert({ product_name: productName.trim(), category_id: Number(categoryId) })
+      .select('product_id, product_name, category_id, created_at')
+      .single();
 
-    const { rows } = await pool.query(query, [productName.trim(), Number(categoryId)]);
-    return res.status(201).json(rows[0]);
+    if (error) {
+      console.error('Supabase createProduct error:', error.message);
+      throw error;
+    }
+
+    return res.status(201).json(data);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to create product', error: error.message });
   }
@@ -61,21 +70,26 @@ const updateProduct = async (req, res) => {
       return res.status(400).json({ message: validationError });
     }
 
-    const query = `
-      UPDATE products
-      SET product_name = $1,
-          category_id = $2
-      WHERE product_id = $3
-      RETURNING product_id, product_name, category_id, created_at
-    `;
+    const { data, error } = await supabase
+      .from('products')
+      .update({ product_name: productName.trim(), category_id: Number(categoryId) })
+      .eq('product_id', productId)
+      .select('product_id, product_name, category_id, created_at')
+      .single();
 
-    const { rows } = await pool.query(query, [productName.trim(), Number(categoryId), productId]);
+    if (error) {
+      console.error('Supabase updateProduct error:', error.message);
+      if (error.code === 'PGRST116' || error.code === 'PGRST117') {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      throw error;
+    }
 
-    if (!rows.length) {
+    if (!data) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    return res.status(200).json(rows[0]);
+    return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update product', error: error.message });
   }
@@ -89,15 +103,18 @@ const deleteProduct = async (req, res) => {
       return res.status(400).json({ message: 'Invalid product id' });
     }
 
-    const query = `
-      DELETE FROM products
-      WHERE product_id = $1
-      RETURNING product_id
-    `;
+    const { data, error } = await supabase
+      .from('products')
+      .delete()
+      .eq('product_id', productId)
+      .select('product_id');
 
-    const { rows } = await pool.query(query, [productId]);
+    if (error) {
+      console.error('Supabase deleteProduct error:', error.message);
+      throw error;
+    }
 
-    if (!rows.length) {
+    if (!data || data.length === 0) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
@@ -115,24 +132,31 @@ const getProductById = async (req, res) => {
       return res.status(400).json({ message: 'Invalid product id' });
     }
 
-    const query = `
-      SELECT p.product_id,
-             p.product_name,
-             p.category_id,
-             c.category_name
-      FROM products p
-      JOIN categories c
-        ON p.category_id = c.category_id
-      WHERE p.product_id = $1
-    `;
+    const { data, error } = await supabase
+      .from('products')
+      .select(
+        `product_id, product_name, category_id, categories!inner(category_name)`
+      )
+      .eq('product_id', productId)
+      .single();
 
-    const { rows } = await pool.query(query, [productId]);
+    if (error) {
+      console.error('Supabase getProductById error:', error.message);
+      throw error;
+    }
 
-    if (!rows.length) {
+    if (!data) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    return res.status(200).json(rows[0]);
+    // supabase returns nested categories; flatten
+    const result = {
+      ...data,
+      category_name: data.categories?.category_name,
+    };
+    delete result.categories;
+
+    return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch product', error: error.message });
   }
@@ -151,36 +175,26 @@ const getProducts = async (req, res) => {
       return res.status(400).json({ message: 'pageSize must be a positive integer' });
     }
 
-    const offset = (page - 1) * pageSize;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-    const listQuery = `
-      SELECT p.product_id,
-             p.product_name,
-             p.category_id,
-             c.category_name
-      FROM products p
-      JOIN categories c
-        ON p.category_id = c.category_id
-      ORDER BY p.product_id
-      LIMIT $1
-      OFFSET $2
-    `;
+    // supabase pagination using range
+    const { data, error, count } = await supabase
+      .from('products')
+      .select(`product_id, product_name, category_id`, { count: 'exact' })
+      .order('product_id')
+      .range(from, to);
 
-    const countQuery = `
-      SELECT COUNT(*)::int AS total_records
-      FROM products
-    `;
+    if (error) {
+      console.error('Supabase getProducts error:', error.message);
+      throw error;
+    }
 
-    const [listResult, countResult] = await Promise.all([
-      pool.query(listQuery, [pageSize, offset]),
-      pool.query(countQuery),
-    ]);
-
-    const totalRecords = countResult.rows[0].total_records;
+    const totalRecords = count ?? 0;
     const totalPages = Math.ceil(totalRecords / pageSize);
 
     return res.status(200).json({
-      data: listResult.rows,
+      data: data,
       page,
       pageSize,
       totalRecords,

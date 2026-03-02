@@ -1,4 +1,5 @@
-const pool = require('../config/db');
+// using supabase client instead of raw pool
+const supabase = require('../config/db');
 
 const createCategory = async (req, res) => {
   try {
@@ -8,14 +9,18 @@ const createCategory = async (req, res) => {
       return res.status(400).json({ message: 'categoryName is required' });
     }
 
-    const query = `
-      INSERT INTO categories (category_name)
-      VALUES ($1)
-      RETURNING category_id, category_name, created_at
-    `;
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({ category_name: categoryName.trim() })
+      .select('category_id, category_name, created_at')
+      .single();
 
-    const { rows } = await pool.query(query, [categoryName.trim()]);
-    return res.status(201).json(rows[0]);
+    if (error) {
+      console.error('Supabase createCategory error:', error.message);
+      throw error;
+    }
+
+    return res.status(201).json(data);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to create category', error: error.message });
   }
@@ -23,15 +28,19 @@ const createCategory = async (req, res) => {
 
 const getCategories = async (_req, res) => {
   try {
-    const query = `
-      SELECT category_id, category_name, created_at
-      FROM categories
-      ORDER BY category_id DESC
-    `;
+    const { data, error } = await supabase
+      .from('categories')
+      .select('category_id, category_name, created_at')
+      .order('category_id', { ascending: false });
 
-    const { rows } = await pool.query(query);
-    return res.status(200).json(rows);
+    if (error) {
+      console.error('Supabase getCategories error:', error.message);
+      throw error;
+    }
+
+    return res.status(200).json(data);
   } catch (error) {
+    console.error('Get categories error:', error.message);
     return res.status(500).json({ message: 'Failed to fetch categories', error: error.message });
   }
 };
@@ -49,20 +58,27 @@ const updateCategory = async (req, res) => {
       return res.status(400).json({ message: 'categoryName is required' });
     }
 
-    const query = `
-      UPDATE categories
-      SET category_name = $1
-      WHERE category_id = $2
-      RETURNING category_id, category_name, created_at
-    `;
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ category_name: categoryName.trim() })
+      .eq('category_id', categoryId)
+      .select('category_id, category_name, created_at')
+      .single();
 
-    const { rows } = await pool.query(query, [categoryName.trim(), categoryId]);
+    if (error) {
+      console.error('Supabase updateCategory error:', error.message);
+      if (error.code === 'PGRST116' || error.code === 'PGRST117') {
+        // not found code depending on supabase
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      throw error;
+    }
 
-    if (!rows.length) {
+    if (!data) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    return res.status(200).json(rows[0]);
+    return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update category', error: error.message });
   }
@@ -76,15 +92,18 @@ const deleteCategory = async (req, res) => {
       return res.status(400).json({ message: 'Invalid category id' });
     }
 
-    const query = `
-      DELETE FROM categories
-      WHERE category_id = $1
-      RETURNING category_id
-    `;
+    const { data, error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('category_id', categoryId)
+      .select('category_id');
 
-    const { rows } = await pool.query(query, [categoryId]);
+    if (error) {
+      console.error('Supabase deleteCategory error:', error.message);
+      throw error;
+    }
 
-    if (!rows.length) {
+    if (!data || data.length === 0) {
       return res.status(404).json({ message: 'Category not found' });
     }
 

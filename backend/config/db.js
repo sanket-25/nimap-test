@@ -1,14 +1,15 @@
-const { Pool } = require('pg');
+// switch to using supabase-js client instead of raw PG connection
+const { createClient } = require('@supabase/supabase-js');
 
-const pool = new Pool({
-  host: process.env.SUPABASE_HOST,
-  database: process.env.SUPABASE_DB,
-  user: process.env.SUPABASE_USER,
-  password: process.env.SUPABASE_PASSWORD,
-  port: Number(process.env.SUPABASE_PORT),
-  ssl: {
-    rejectUnauthorized: false,
-  },
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Supabase URL and anon key must be defined in environment');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  // choose streaming or other options if needed
 });
 
-module.exports = pool;
+module.exports = supabase;

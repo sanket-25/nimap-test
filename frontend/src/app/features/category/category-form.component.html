@@ -5,7 +5,7 @@
     <div class="form-field">
       <label for="categoryName">Category Name</label>
       <input id="categoryName" formControlName="categoryName" type="text" />
-      <small *ngIf="categoryForm.controls.categoryName.touched && categoryForm.controls.categoryName.invalid">
+      <small *ngIf="categoryForm.controls['categoryName'].touched && categoryForm.controls['categoryName'].invalid">
         Category name is required.
       </small>
     </div>

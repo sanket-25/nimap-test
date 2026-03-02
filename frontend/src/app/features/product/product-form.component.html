@@ -7,7 +7,7 @@
     <div class="form-field">
       <label for="productName">Product Name</label>
       <input id="productName" formControlName="productName" type="text" />
-      <small *ngIf="productForm.controls.productName.touched && productForm.controls.productName.invalid">
+      <small *ngIf="productForm.controls['productName'].touched && productForm.controls['productName'].invalid">
         Product name is required.
       </small>
     </div>
@@ -20,7 +20,7 @@
           {{ category.category_name }}
         </option>
       </select>
-      <small *ngIf="productForm.controls.categoryId.touched && productForm.controls.categoryId.invalid">
+      <small *ngIf="productForm.controls['categoryId'].touched && productForm.controls['categoryId'].invalid">
         Category is required.
       </small>
     </div>

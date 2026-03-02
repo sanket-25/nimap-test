@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CategoryService } from '../../core/services/category.service';
+import { Category, CategoryService } from '../../core/services/category.service';
 
 @Component({
   selector: 'app-category-form',
@@ -14,16 +14,19 @@ export class CategoryFormComponent implements OnInit {
   isSubmitting = false;
   errorMessage = '';
 
-  readonly categoryForm = this.formBuilder.group({
-    categoryName: ['', Validators.required],
-  });
+  // form will be setup in constructor to avoid using injected member before initialization
+  readonly categoryForm: FormGroup;
 
   constructor(
     private readonly formBuilder: FormBuilder,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly categoryService: CategoryService,
-  ) {}
+  ) {
+    this.categoryForm = this.formBuilder.group({
+      categoryName: ['', Validators.required],
+    });
+  }
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -35,8 +38,8 @@ export class CategoryFormComponent implements OnInit {
 
   private loadCategory(categoryId: number): void {
     this.categoryService.getCategories().subscribe({
-      next: (categories) => {
-        const category = categories.find((item) => item.category_id === categoryId);
+      next: (categories: Category[]) => {
+        const category = categories.find((item: Category) => item.category_id === categoryId);
         if (!category) {
           this.errorMessage = 'Category not found';
           return;
@@ -60,7 +63,7 @@ export class CategoryFormComponent implements OnInit {
 
     this.isSubmitting = true;
     this.errorMessage = '';
-    const categoryName = this.categoryForm.controls.categoryName.value?.trim() || '';
+    const categoryName = this.categoryForm.controls['categoryName'].value?.trim() || '';
 
     const request = this.categoryId
       ? this.categoryService.updateCategory(this.categoryId, categoryName)

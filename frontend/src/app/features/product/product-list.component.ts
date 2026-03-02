@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Product, ProductService } from '../../core/services/product.service';
+import { Product, ProductService, PaginatedProducts } from '../../core/services/product.service';
 
 @Component({
   selector: 'app-product-list',
@@ -32,7 +32,7 @@ export class ProductListComponent implements OnInit {
     this.errorMessage = '';
 
     this.productService.getProducts(this.page, this.pageSize).subscribe({
-      next: (response) => {
+      next: (response: PaginatedProducts) => {
         this.products = response.data;
         this.page = response.page;
         this.pageSize = response.pageSize;

@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Category, CategoryService } from '../../core/services/category.service';
-import { ProductService } from '../../core/services/product.service';
+import { Product, ProductService } from '../../core/services/product.service';
 
 @Component({
   selector: 'app-product-form',
@@ -17,10 +17,7 @@ export class ProductFormComponent implements OnInit {
   isSubmitting = false;
   errorMessage = '';
 
-  readonly productForm = this.formBuilder.group({
-    productName: ['', Validators.required],
-    categoryId: ['', Validators.required],
-  });
+  readonly productForm: FormGroup;
 
   constructor(
     private readonly formBuilder: FormBuilder,
@@ -28,7 +25,12 @@ export class ProductFormComponent implements OnInit {
     private readonly router: Router,
     private readonly categoryService: CategoryService,
     private readonly productService: ProductService,
-  ) {}
+  ) {
+    this.productForm = this.formBuilder.group({
+      productName: ['', Validators.required],
+      categoryId: ['', Validators.required],
+    });
+  }
 
   ngOnInit(): void {
     this.loadCategories();
@@ -42,7 +44,7 @@ export class ProductFormComponent implements OnInit {
 
   private loadCategories(): void {
     this.categoryService.getCategories().subscribe({
-      next: (response) => {
+      next: (response: Category[]) => {
         this.categories = response;
       },
       error: () => {
@@ -55,7 +57,7 @@ export class ProductFormComponent implements OnInit {
     this.isLoading = true;
 
     this.productService.getProductById(productId).subscribe({
-      next: (product) => {
+      next: (product: Product) => {
         this.productForm.patchValue({
           productName: product.product_name,
           categoryId: String(product.category_id),
@@ -77,8 +79,8 @@ export class ProductFormComponent implements OnInit {
 
     this.isSubmitting = true;
     this.errorMessage = '';
-    const productName = this.productForm.controls.productName.value?.trim() || '';
-    const categoryId = Number(this.productForm.controls.categoryId.value);
+    const productName = this.productForm.controls['productName'].value?.trim() || '';
+    const categoryId = Number(this.productForm.controls['categoryId'].value);
 
     const request = this.productId
       ? this.productService.updateProduct(this.productId, productName, categoryId)
